@@ -1,0 +1,12 @@
+{
+  "name": "emilo-social-platform",
+  "version": "1.0.0",
+  "description": "Mini Social Media Platform built with MERN stack for Emilo Intern Assignment",
+  "scripts": {
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build"
+  },
+  "author": "Parthib Sharma",
+  "license": "MIT"
+}
