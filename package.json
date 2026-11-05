@@ -1,7 +1,8 @@
 {
-  "name": "emilo-social-platform",
+  "name": "Boink",
   "version": "1.0.0",
-  "description": "Mini Social Media Platform built with MERN stack for Emilo Intern Assignment",
+  "description": "Mini Social Media Platform built with MERN stack 
+  ",
   "scripts": {
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
