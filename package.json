@@ -1,8 +1,7 @@
 {
   "name": "Boink",
   "version": "1.0.0",
-  "description": "Mini Social Media Platform built with MERN stack 
-  ",
+  "description": "Mini Social Media Platform built with MERN stack",
   "scripts": {
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
