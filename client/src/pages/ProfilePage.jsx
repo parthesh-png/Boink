@@ -7,12 +7,17 @@ import PostCard from '../components/PostCard';
 import EditProfileModal from '../components/EditProfileModal';
 import { Edit3, UserPlus, UserCheck, Lock, Loader2 } from 'lucide-react';
 
+const getId = (value) => {
+  if (value && typeof value === 'object') return String(value._id ?? value.id ?? '');
+  return value == null ? '' : String(value);
+};
+
 const ProfilePage = () => {
   const { id: paramId } = useParams();
   const { user: currentUser, updateUserLocal } = useAuth();
   
   const targetId = paramId || currentUser?._id;
-  const isOwnProfile = currentUser && targetId === currentUser._id;
+  const isOwnProfile = currentUser && getId(targetId) === getId(currentUser._id);
 
   const [profileUser, setProfileUser] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
@@ -46,11 +51,11 @@ const ProfilePage = () => {
   }, [targetId]);
 
   const isFollowing = currentUser?.following?.some(
-    (id) => (typeof id === 'string' ? id : id._id) === targetId
+    (id) => getId(id) === getId(targetId)
   );
 
   const handleToggleFollow = async () => {
-    if (followLoading) return;
+    if (followLoading || !currentUser?._id || !targetId) return;
     setFollowLoading(true);
 
     try {
@@ -62,16 +67,20 @@ const ProfilePage = () => {
         setProfileUser((prev) => ({
           ...prev,
           followers: nextIsFollowing
-            ? [...(prev.followers || []), currentUser._id]
-            : (prev.followers || []).filter((id) => (id._id || id) !== currentUser._id),
+            ? (prev.followers || []).some((id) => getId(id) === getId(currentUser._id))
+              ? prev.followers
+              : [...(prev.followers || []), currentUser._id]
+            : (prev.followers || []).filter((id) => getId(id) !== getId(currentUser._id)),
         }));
 
         // Update logged in user following list in AuthContext
         updateUserLocal((prev) => {
           const currentFollowing = prev?.following || [];
           const updated = nextIsFollowing
-            ? [...currentFollowing, targetId]
-            : currentFollowing.filter((id) => id !== targetId);
+            ? currentFollowing.some((id) => getId(id) === getId(targetId))
+              ? currentFollowing
+              : [...currentFollowing, targetId]
+            : currentFollowing.filter((id) => getId(id) !== getId(targetId));
           return { ...prev, following: updated };
         });
       }
@@ -126,8 +135,8 @@ const ProfilePage = () => {
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Profile Details Card */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
               <img
                 src={avatarUrl}
                 alt={profileUser.name}
@@ -136,10 +145,10 @@ const ProfilePage = () => {
                   e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${profileUser.name}`;
                 }}
               />
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-xl font-bold text-slate-900">{profileUser.name}</h1>
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                  <span>{profileUser.email}</span>
+                  <span className="break-all">{profileUser.email}</span>
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
                     <Lock className="w-2.5 h-2.5" /> Readonly
                   </span>
@@ -151,7 +160,7 @@ const ProfilePage = () => {
             {isOwnProfile ? (
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                className="inline-flex w-full items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors sm:w-auto"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Profile</span>
@@ -160,7 +169,7 @@ const ProfilePage = () => {
               <button
                 onClick={handleToggleFollow}
                 disabled={followLoading}
-                className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all sm:w-auto ${
                   isFollowing
                     ? 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                     : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs'

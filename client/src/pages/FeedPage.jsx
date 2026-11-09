@@ -3,23 +3,28 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import CreatePostCard from '../components/CreatePostCard';
 import PostCard from '../components/PostCard';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 const FeedPage = () => {
   const [activeTab, setActiveTab] = useState('all'); // 'all' or 'mine'
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   const fetchPosts = async (tab = activeTab) => {
     setLoading(true);
+    setFetchError('');
     try {
       const endpoint = tab === 'mine' ? '/posts/me' : '/posts';
       const res = await api.get(endpoint);
       if (res.data.success) {
         setPosts(res.data.posts || []);
+      } else {
+        setFetchError('Posts could not be loaded. Please try again.');
       }
     } catch (err) {
       console.error('Failed to fetch posts:', err);
+      setFetchError(err.response?.data?.message || 'Posts could not be loaded. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,6 +85,18 @@ const FeedPage = () => {
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          </div>
+        ) : fetchError ? (
+          <div className="bg-white border border-rose-200 rounded-xl p-8 text-center">
+            <AlertCircle className="w-5 h-5 text-rose-600 mx-auto mb-2" />
+            <p className="text-sm text-rose-700">{fetchError}</p>
+            <button
+              type="button"
+              onClick={() => fetchPosts(activeTab)}
+              className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              Try again
+            </button>
           </div>
         ) : posts.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">

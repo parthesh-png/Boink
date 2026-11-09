@@ -40,7 +40,7 @@ const CreatePostCard = ({ onPostCreated }) => {
     const result = createPostSchema.safeParse({ text, image });
     if (!result.success) {
       const fieldErrors = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         fieldErrors[err.path[0] || 'general'] = err.message;
       });
       setErrors(fieldErrors);

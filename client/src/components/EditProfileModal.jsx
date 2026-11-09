@@ -37,7 +37,7 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdated }) => {
     const result = editProfileSchema.safeParse({ name, bio, profilePicture });
     if (!result.success) {
       const fieldErrors = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         fieldErrors[err.path[0]] = err.message;
       });
       setErrors(fieldErrors);

@@ -16,17 +16,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle unauthorized errors
+// Notify the auth provider only when an authenticated request is unauthorized.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Don't loop redirect if already on login/register
-      const path = window.location.pathname;
-      if (path !== '/login' && path !== '/register') {
-        localStorage.removeItem('emilo_token');
-        localStorage.removeItem('emilo_user');
-      }
+    const requestUrl = error.config?.url || '';
+    const isAuthSubmission = /\/auth\/(login|register)(?:\?|$)/.test(requestUrl);
+    if (error.response?.status === 401 && !isAuthSubmission && localStorage.getItem('emilo_token')) {
+      window.dispatchEvent(new Event('emilo:unauthorized'));
     }
     return Promise.reject(error);
   }

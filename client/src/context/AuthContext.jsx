@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 
 const AuthContext = createContext(null);
@@ -6,12 +6,26 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('emilo_user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      localStorage.removeItem('emilo_user');
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('emilo_token') || null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('emilo_token');
+    localStorage.removeItem('emilo_user');
+  }, []);
+
   useEffect(() => {
+    window.addEventListener('emilo:unauthorized', logout);
     const fetchCurrentUser = async () => {
       const storedToken = localStorage.getItem('emilo_token');
       if (!storedToken) {
@@ -25,14 +39,16 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('emilo_user', JSON.stringify(res.data.user));
         }
       } catch (err) {
-        logout();
+        // A 401 means the token is invalid; transient network/server failures do not.
+        if (err.response?.status === 401) logout();
       } finally {
         setLoading(false);
       }
     };
 
     fetchCurrentUser();
-  }, []);
+    return () => window.removeEventListener('emilo:unauthorized', logout);
+  }, [logout]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
@@ -56,13 +72,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('emilo_user', JSON.stringify(receivedUser));
       return receivedUser;
     }
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('emilo_token');
-    localStorage.removeItem('emilo_user');
   };
 
   const updateProfile = async ({ name, bio, profilePicture }) => {

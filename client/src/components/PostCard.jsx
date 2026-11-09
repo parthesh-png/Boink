@@ -1,38 +1,59 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Heart, Trash2 } from 'lucide-react';
 
+const getId = (value) => {
+  if (value && typeof value === 'object') return String(value._id ?? value.id ?? '');
+  return value == null ? '' : String(value);
+};
+
+const isUserLiked = (likes, userId) =>
+  Boolean(userId && likes?.some((like) => getId(like) === getId(userId)));
+
 const PostCard = ({ post, onDelete }) => {
   const { user } = useAuth();
-  const [isLiked, setIsLiked] = useState(() => {
-    return post.likes?.some((like) => {
-      const id = typeof like === 'string' ? like : like._id;
-      return id === user?._id;
-    });
-  });
+  const [isLiked, setIsLiked] = useState(() => isUserLiked(post.likes, user?._id));
   const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
+  const [liking, setLiking] = useState(false);
+  const likePendingRef = useRef(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isAuthor = user && post.author && (post.author._id === user._id || post.author === user._id);
+  useEffect(() => {
+    if (likePendingRef.current) return;
+    const likes = post.likes || [];
+    setIsLiked(isUserLiked(likes, user?._id));
+    setLikesCount(likes.length);
+  }, [post.likes, user?._id]);
+
+  const isAuthor = user && post.author && getId(post.author) === getId(user._id);
 
   const handleToggleLike = async () => {
+    if (likePendingRef.current) return;
+    likePendingRef.current = true;
+    setLiking(true);
+
     // Optimistic toggle
     const prevLiked = isLiked;
     const prevCount = likesCount;
     setIsLiked(!prevLiked);
-    setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    setLikesCount(Math.max(0, prevLiked ? prevCount - 1 : prevCount + 1));
 
     try {
       const res = await api.post(`/posts/${post._id}/like`);
       if (res.data.success) {
         setIsLiked(res.data.isLiked);
         setLikesCount(res.data.likesCount);
+      } else {
+        throw new Error('Like update failed');
       }
     } catch (err) {
       setIsLiked(prevLiked);
       setLikesCount(prevCount);
+    } finally {
+      likePendingRef.current = false;
+      setLiking(false);
     }
   };
 
@@ -119,6 +140,7 @@ const PostCard = ({ post, onDelete }) => {
       <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 text-xs text-slate-500">
         <button
           onClick={handleToggleLike}
+          disabled={liking}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
             isLiked ? 'text-rose-600 font-semibold' : 'text-slate-600 hover:text-rose-600'
           }`}
